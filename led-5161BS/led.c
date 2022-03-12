@@ -1,22 +1,30 @@
 #include <avr/io.h>
 
 #define F_CPU 16000000
-#define BLINK_DELAY_MS 100
+#define BLINK_DELAY_MS 1000
 
 #include <util/delay.h>
 
 
 const uint8_t BUTTON_PORT12 = DDB4;
 
-const uint8_t RIGHT_BOTTOM_PORT11 = DDB3;
-// const uint8_t PORT10 = DDB2;
-const uint8_t CENTER_BOTTOM_PORT9 = DDB1;
-const uint8_t LEFT_BOTTOM_PORT8 = DDB0;
+const uint8_t PORT_B10 = DDB2;
+const uint8_t PORT_B9 = DDB1;
+const uint8_t PORT_B8 = DDB0;
 
-const uint8_t CENTER_CENTER_PORT2 = DDD2;
-const uint8_t LEFT_TOP_PORT3 = DDD3;
-const uint8_t CENTER_TOP_PORT4 = DDD4;
-const uint8_t RIGHT_TOP_PORT5 = DDD5;
+const uint8_t PORT_D2 = DDD2;
+const uint8_t PORT_D3 = DDD3;
+const uint8_t PORT_D4 = DDD4;
+const uint8_t PORT_D5 = DDD5;
+
+const uint8_t BOTTOM_LEFT  = 0b11111110;
+const uint8_t BOTTOM_CENTER = 0b11111101;
+const uint8_t BOTTOM_RIGHT   = 0b11111011;
+
+const uint8_t TOP_LEFT   =  0b11111011;
+const uint8_t TOP_CENTER =  0b11110111;
+const uint8_t TOP_RIGHT  =  0b11101111;
+
 
 const uint8_t BUTTON_PIN12 = PINB4;
 
@@ -25,7 +33,9 @@ const uint8_t INPUT = 0;
 
 const uint8_t ON = 1;
 const uint8_t OFF = 0;
-void turnOffLed();
+void turnOffLED();
+void turnOffPINB();
+void turnOffPIND();
 void handleNumbers(int counter);
 void onZero();
 void onOne();
@@ -47,76 +57,25 @@ void digitalWritePINB(uint8_t port, uint8_t value);
 uint8_t digitalReadPINB(uint8_t pin);
 
 int main() {
-  pinModeDDRD(CENTER_CENTER_PORT2, OUTPUT);
-  pinModeDDRD(LEFT_TOP_PORT3, OUTPUT);
-  pinModeDDRD(CENTER_TOP_PORT4, OUTPUT);
-  pinModeDDRD(RIGHT_TOP_PORT5, OUTPUT);
+  pinModeDDRD(PORT_D2, OUTPUT);
+  pinModeDDRD(PORT_D3, OUTPUT);
+  pinModeDDRD(PORT_D4, OUTPUT);
 
 
-  pinModeDDRB(LEFT_BOTTOM_PORT8, OUTPUT);
-  pinModeDDRB(CENTER_BOTTOM_PORT9, OUTPUT);
-  pinModeDDRB(RIGHT_BOTTOM_PORT11, OUTPUT);
-  pinModeDDRB(BUTTON_PORT12, INPUT);
+  pinModeDDRB(PORT_B8, OUTPUT);
+  pinModeDDRB(PORT_B9, OUTPUT);
+  pinModeDDRB(PORT_B10, OUTPUT);
+  // pinModeDDRB(BUTTON_PORT12, INPUT);
 
-  // int counter = 0;
+  turnOffLED();
   while(1) {
-    // get value from button on pin 12
-    uint8_t buttonOn = digitalReadPINB(BUTTON_PIN12);
-    if (buttonOn != 0) {
-      digitalWritePIND(CENTER_CENTER_PORT2, OFF);
-      digitalWritePIND(LEFT_TOP_PORT3, OFF);
-      digitalWritePIND(CENTER_TOP_PORT4, OFF);
-      digitalWritePIND(RIGHT_TOP_PORT5, OFF);
+    for(int i = 0; i <= 9; i++) {
+      handleNumbers(i);
+      _delay_ms(BLINK_DELAY_MS / 2);
 
-
-      digitalWritePINB(LEFT_BOTTOM_PORT8, OFF);
-      digitalWritePINB(CENTER_BOTTOM_PORT9, OFF);
-      digitalWritePINB(RIGHT_BOTTOM_PORT11, OFF); 
-      // turnOffLed();
-      // digitalWritePIND(CENTER_CENTER_PORT2, ON);
-      // digitalWritePIND(LEFT_TOP_PORT3, ON);
-      // digitalWritePIND(CENTER_TOP_PORT4, ON);
-      // digitalWritePIND(RIGHT_TOP_PORT5, ON);
-
-
-      // digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-      // digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-      // digitalWritePINB(RIGHT_BOTTOM_PORT11, ON);       
-      _delay_ms(BLINK_DELAY_MS);
-    } else {
-      digitalWritePIND(CENTER_CENTER_PORT2, ON);
-      digitalWritePIND(LEFT_TOP_PORT3, ON);
-      digitalWritePIND(CENTER_TOP_PORT4, ON);
-      digitalWritePIND(RIGHT_TOP_PORT5, ON);
-
-
-      digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-      digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-      digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
-
-
-      // digitalWritePIND(CENTER_CENTER_PORT2, OFF);
-      // digitalWritePIND(LEFT_TOP_PORT3, OFF);
-      // digitalWritePIND(CENTER_TOP_PORT4, OFF);
-      // digitalWritePIND(RIGHT_TOP_PORT5, OFF);
-
-
-      // digitalWritePINB(LEFT_BOTTOM_PORT8, OFF);
-      // digitalWritePINB(CENTER_BOTTOM_PORT9, OFF);
-      // digitalWritePINB(RIGHT_BOTTOM_PORT11, OFF); 
-      _delay_ms(BLINK_DELAY_MS);
+      turnOffLED();
+        _delay_ms(BLINK_DELAY_MS / 2);
     }
-
-    // if (counter == 9) {
-    //   counter = 9;
-    // } else {
-    //   counter++;
-    // }
-    // turnOffLed();
-    // _delay_ms(BLINK_DELAY_MS);
-
-
-    // handleNumbers(counter);
   }
 }
 
@@ -151,11 +110,11 @@ void digitalWritePINB(uint8_t port, uint8_t value) {
   switch (value)
   {
   case ON:
-    PORTB |= (1 << port);
+    PORTB = ~(~PORTB | ~port);
     break;
 
   case OFF:
-    PORTB &= ~(1 << port);
+    PORTB = ~(PORTB ^ port);
   break;
 
   default:
@@ -194,11 +153,11 @@ void digitalWritePIND(uint8_t port, uint8_t value) {
   switch (value)
   {
   case ON:
-    PORTD |= (1 << port);
+    PORTD = ~(~PORTD | ~port);
     break;
 
   case OFF:
-    PORTD &= ~(1 << port);
+    PORTD = ~(PORTD ^ port);
   break;
 
   default:
@@ -208,110 +167,109 @@ void digitalWritePIND(uint8_t port, uint8_t value) {
 
 
 void onZero() {
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
-
-
-  digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  
+  digitalWritePIND(TOP_RIGHT, ON);
+  digitalWritePINB(BOTTOM_LEFT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON);
+  digitalWritePINB(BOTTOM_RIGHT, ON);
 }
 
 void onOne() {
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePIND(TOP_RIGHT, ON);
+
+  digitalWritePINB(BOTTOM_RIGHT, ON); 
 }
 
 void onTwo() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  digitalWritePIND(TOP_RIGHT, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
 
-  digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
+  digitalWritePINB(BOTTOM_LEFT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON);
 }
 
 void onThree() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
+ digitalWritePIND(TOP_CENTER, ON);
+  digitalWritePIND(TOP_RIGHT, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
 
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePINB(BOTTOM_RIGHT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON);
 }
 
 void onFour() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_RIGHT, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
+  digitalWritePINB(BOTTOM_RIGHT, ON); 
 }
 
 void onFive() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePINB(BOTTOM_RIGHT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON); 
 }
 
 void onSix() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
-  digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePINB(BOTTOM_LEFT, ON);
+  digitalWritePINB(BOTTOM_RIGHT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON); 
 }
 
 void onSeven() {
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePIND(TOP_RIGHT, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  digitalWritePINB(BOTTOM_RIGHT, ON); 
 }
 
 void onEight() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_RIGHT, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
 
-  digitalWritePINB(LEFT_BOTTOM_PORT8, ON);
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePINB(BOTTOM_LEFT, ON);
+  digitalWritePINB(BOTTOM_RIGHT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON); 
 }
 
 void onNine() {
-  digitalWritePIND(CENTER_CENTER_PORT2, ON);
-  digitalWritePIND(LEFT_TOP_PORT3, ON);
-  digitalWritePIND(CENTER_TOP_PORT4, ON);
-  digitalWritePIND(RIGHT_TOP_PORT5, ON);
+  digitalWritePIND(TOP_LEFT, ON);
+  digitalWritePIND(TOP_RIGHT, ON);
+  digitalWritePIND(TOP_CENTER, ON);
+  // digitalWritePIND(CENTER_CENTER, ON);
 
-  digitalWritePINB(CENTER_BOTTOM_PORT9, ON);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, ON); 
+  digitalWritePINB(BOTTOM_RIGHT, ON);
+  digitalWritePINB(BOTTOM_CENTER, ON); 
 }
 
-void turnOffLed() {
-  digitalWritePIND(CENTER_CENTER_PORT2, OFF);
-  digitalWritePIND(LEFT_TOP_PORT3, OFF);
-  digitalWritePIND(CENTER_TOP_PORT4, OFF);
-  digitalWritePIND(RIGHT_TOP_PORT5, OFF);
-
-
-  digitalWritePINB(LEFT_BOTTOM_PORT8, OFF);
-  digitalWritePINB(CENTER_BOTTOM_PORT9, OFF);
-  digitalWritePINB(RIGHT_BOTTOM_PORT11, OFF); 
+void turnOffLED() {
+  PORTD = ~0;
+  PORTB = ~0;
+}
+void turnOffPIND() {
+  PORTD = ~0;
 }
 
-void handleNumbers(int counter) {
-  // turnOffLed();
-  switch (counter)
+void turnOffPINB() {
+  PORTB = ~0;
+}
+
+void handleNumbers(int number) {
+  switch (number)
   {
   case 0:
     onZero();
